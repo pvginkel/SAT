@@ -9,9 +9,18 @@ projects:
     setup:
       # A fresh clone has only origin, the fork.
       - git remote get-url upstream >/dev/null 2>&1 || git remote add upstream https://github.com/Alexwijn/SAT.git
-      # uv keeps the Python it fetches in ~/.local/share/uv by default, which
-      # is image content and goes with the pod; ~/.cache persists per
-      # environment. uv pip install leaves alone what the venv already
-      # satisfies, so the unpinned requirements move only when .venv is rebuilt.
-      - cexec python sh -c 'export UV_PYTHON_INSTALL_DIR="$HOME/.cache/uv-python"; uv venv --allow-existing -p 3.14 .venv && uv pip install -p .venv -r requirements_test.txt'
+      # Python 3.14 where upstream's pytest.yml uses 3.13: homeassistant
+      # 2026.10 requires >=3.14.2, and on 3.13 the unpinned requirements
+      # resolve to an older HA. The toolchain carries only 3.13, so uv fetches
+      # 3.14. By default uv keeps it in ~/.local/share/uv, which is image
+      # content and goes with the pod; ~/.cache persists per environment.
+      # uv pip install leaves alone what the venv already satisfies, so the
+      # unpinned requirements move only when .venv is rebuilt.
+      - cexec python sh -c 'export UV_PYTHON_INSTALL_DIR="$HOME/.cache/uv-python"; uv venv --allow-existing -p 3.14 .venv && uv pip install -p .venv -r requirements_test.txt bandit'
     test: cexec python .venv/bin/python -m pytest
+    # bandit with the repo's own tests/bandit.yaml (HA core's test selection)
+    # is the one configured linter that passes. pylint with .pylintrc reports
+    # 323 findings (196 of them missing docstrings), and upstream runs no
+    # linter at all, so pylint stays unwired. The two "Unknown test found in
+    # profile: B320/B325" warnings name tests that newer bandit dropped.
+    lint: cexec python .venv/bin/bandit -q -c tests/bandit.yaml -r custom_components/sat
