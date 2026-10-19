@@ -1,0 +1,47 @@
+# The environment for the operator's fork of SAT (Smart Autotune Thermostat),
+# which runs on their Home Assistant through HACS. SATSpecs, the private repo
+# beside it, holds the design notes, standing decisions and runbooks.
+
+repos:
+  # An ordinary entry, not `shared:`, because sessions here write to it.
+  - url: https://github.com/pvginkel/SATSpecs
+
+capabilities:
+  github: rw
+
+tools:
+  # The pytest suite (pytest-homeassistant-custom-component). Setup has uv
+  # fetch Python 3.14; see .kubecoder/project.yaml.
+  - use: python
+
+# ssh to HA's Terminal & SSH add-on, for the deploy runbook's fallback and for
+# reading /config. KubeCoder mounts the key read-only at
+# /run/secrets/ssh-key-homeassistant; SATSpecs' setup
+# (scripts/ha-ssh-config.sh) names it in ~/.ssh/config and pins the add-on's
+# host key.
+secretFiles:
+  - ssh-key-homeassistant
+
+# The home directory is shared by every environment. This overlay makes ~/.ssh
+# this environment's own, so the ssh config and the pinned host key that
+# SATSpecs' setup writes stay here.
+homeOverlays:
+  - .ssh
+
+preamble:
+  instructions: |
+    This environment maintains pvginkel/SAT (/work/SAT), the operator's fork
+    of Alexwijn/SAT, and pvginkel/SATSpecs (/work/SATSpecs, private): design
+    notes, standing decisions and runbooks. Read SATSpecs' README first.
+
+    - HA runs the fork's `develop` through HACS, so every push to `develop`
+      is offered to the live boiler as an update. Ask before every push. The
+      HACS download and the HA restart are the operator's call. Procedure:
+      /work/SATSpecs/runbooks/deploy-to-ha.md.
+    - Branch upstream PRs from `upstream/develop`, never from the fork's
+      `develop`: it carries #176's merge, fork-only fixes and .kubecoder/.
+    - Tests: `kc project test` in /work/SAT runs pytest in the python
+      sidecar, in .venv. requirements_test.txt is unpinned, so a rebuilt
+      venv can pick up a newer HA and change the results.
+    - The Home Assistant MCP reaches the live HA. ssh to its SSH add-on is
+      `ssh srvhomeassistant.home`, wired by SATSpecs' setup.
