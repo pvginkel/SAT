@@ -1,7 +1,9 @@
+import logging
+
 from types import MappingProxyType
 from typing import Any
 
-from homeassistant.components.climate import HVACMode
+from homeassistant.components.climate import HVACAction, HVACMode
 from homeassistant.const import STATE_UNKNOWN, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant, State
 
@@ -14,6 +16,8 @@ from .util import (
     create_pid_controller,
     create_heating_curve_controller,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 SENSOR_TEMPERATURE_ID = "sensor_temperature_id"
 
@@ -64,6 +68,11 @@ class Area:
     @property
     def error(self) -> Error | None:
         """Calculate the temperature error."""
+        if (state := self.state) is not None:
+            hvac_action = state.attributes.get("hvac_action")
+            if hvac_action is not None and hvac_action != HVACAction.HEATING:
+                return None
+
         target_temperature = self.target_temperature
         current_temperature = self.current_temperature
 
