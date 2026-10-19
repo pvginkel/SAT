@@ -1,0 +1,9 @@
+{
+  // SATSpecs is the private repo of design notes, standing decisions and
+  // runbooks. .kubecoder/config.yaml clones it to /work/SATSpecs, beside this
+  // repository, but it is not part of it.
+  "folders": [
+    { "path": "." },
+    { "path": "../SATSpecs" }
+  ]
+}
