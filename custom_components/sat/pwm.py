@@ -166,6 +166,12 @@ class PWM:
             _LOGGER.info("Starting new duty cycle (ON state). Current CYCLES count: %d", self._current_cycle)
             return
 
+        # Without an off time, switching off would only interrupt a running burn for one control loop
+        if self._status == PWMStatus.ON and self._duty_cycle[0] >= HEATER_STARTUP_TIMEFRAME and self._duty_cycle[1] == 0 and elapsed >= self._duty_cycle[0]:
+            self._last_update = monotonic()
+            _LOGGER.info("Duty cycle has no OFF time. Extending the ON state.")
+            return
+
         if self._status != PWMStatus.OFF and (self._duty_cycle[0] < HEATER_STARTUP_TIMEFRAME or elapsed >= self._duty_cycle[0] or self._status == PWMStatus.IDLE):
             self._status = PWMStatus.OFF
             self._last_update = monotonic()
